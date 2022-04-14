@@ -2,11 +2,12 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 import json
+from urllib import request
 
 from calibre.ebooks.metadata.book.base import Metadata
 from calibre_plugins.comicalibre.ui.config import prefs
 from dateutil.parser import parse
-from urllib.request import urlopen
+from urllib.request import urlopen, Request
 
 __license__ = "GPL v3"
 __copyright__ = "2019, Michael Merrill <michael@merrill.tk>"
@@ -17,6 +18,7 @@ class ComicalibreVineWork():
   """ Control the interaction with Comic Vine API. """
 
   BASE_URL = "https://comicvine.gamespot.com/api/"
+  REQUEST_USER_AGENT = "Mozilla/5.0"
   warnings = []
 
   def __init__(self):
@@ -29,6 +31,10 @@ class ComicalibreVineWork():
     for param in params:
       url = url + "&" + param + "=" + params[param]
     return url
+
+  def get_response(self, url):
+    req = Request(url, headers={'User-Agent': self.REQUEST_USER_AGENT})
+    return urlopen(req)
 
   def get_metadata(self, md, volume_id, issue, issue_is_id):
     """ Main process to get metadata from Comic Vine and add to Calibre. """
@@ -48,7 +54,7 @@ class ComicalibreVineWork():
         "field_list": "name,publisher,start_year"
     }
     url = self.build_url("volume/4050-" + str(volume_id), params)
-    response = urlopen(url)
+    response = self.get_response(url)
     result = response.read()
     data = json.loads(result.decode("utf-8"))
     volume_name = data["results"]["name"]
@@ -72,7 +78,7 @@ class ComicalibreVineWork():
         "issue_number"
     }
     url = self.build_url("issue/4000-" + str(issue_id), params)
-    response = urlopen(url)
+    response = self.get_response(url)
     result = response.read()
     data = json.loads(result.decode("utf-8"))
     char_data = data["results"]["character_credits"]
@@ -124,7 +130,7 @@ class ComicalibreVineWork():
         "filter": "volume:" + str(volume_id) + ",issue_number:" + str(issue)
     }
     url = self.build_url("issues/", params)
-    response = urlopen(url)
+    response = self.get_response(url)
     result = response.read()
     data = json.loads(result.decode("utf-8"))
     return data["results"][0]["id"]
